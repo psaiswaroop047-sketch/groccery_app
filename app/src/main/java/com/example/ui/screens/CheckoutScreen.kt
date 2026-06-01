@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.CartItem
 import com.example.ui.viewmodel.GroceryViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,8 +30,28 @@ fun CheckoutScreen(
     onOrderPlacedSuccessfully: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cartItems by viewModel.cartItems.collectAsState()
-    val totalPrice by viewModel.totalCost.collectAsState()
+    val cartItemsState by viewModel.cartItems.collectAsState()
+    val totalPriceState by viewModel.totalCost.collectAsState()
+
+    // Cache the cart items and total cost to prevent displaying "0" or empty summaries during transitions
+    var cachedCartItems by remember { mutableStateOf<List<CartItem>>(emptyList()) }
+    var cachedTotalPrice by remember { mutableStateOf(0.0) }
+
+    LaunchedEffect(cartItemsState) {
+        if (cartItemsState.isNotEmpty()) {
+            cachedCartItems = cartItemsState
+        }
+    }
+
+    LaunchedEffect(totalPriceState) {
+        if (totalPriceState > 0.0) {
+            cachedTotalPrice = totalPriceState
+        }
+    }
+
+    // Fallbacks if the DB loaded but we have cached versions
+    val cartItems = if (cartItemsState.isNotEmpty()) cartItemsState else cachedCartItems
+    val totalPrice = if (totalPriceState > 0.0) totalPriceState else cachedTotalPrice
 
     // Form inputs
     val name by viewModel.checkoutName.collectAsState()
@@ -43,6 +64,8 @@ fun CheckoutScreen(
     val mobileError by viewModel.mobileError.collectAsState()
     val addressError by viewModel.addressError.collectAsState()
     val pincodeError by viewModel.pincodeError.collectAsState()
+
+    val isOrdering by viewModel.isOrdering.collectAsState()
 
     Scaffold(
         topBar = {
@@ -279,10 +302,13 @@ fun CheckoutScreen(
                 ) {
                     Button(
                         onClick = {
-                            viewModel.placeOrder(onSuccess = { createdOrderId ->
-                                onOrderPlacedSuccessfully(createdOrderId)
-                            })
+                            if (!isOrdering) {
+                                viewModel.placeOrder(onSuccess = { createdOrderId ->
+                                    onOrderPlacedSuccessfully(createdOrderId)
+                                })
+                            }
                         },
+                        enabled = !isOrdering,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -293,8 +319,17 @@ fun CheckoutScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.ShoppingBag, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Text(text = "Place Order • ₹${totalPrice.toInt()}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            if (isOrdering) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                                Text(text = "Processing...", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(imageVector = Icons.Default.ShoppingBag, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Text(text = "Place Order • ₹${totalPrice.toInt()}", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

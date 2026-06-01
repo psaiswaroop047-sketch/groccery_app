@@ -9,6 +9,8 @@ import com.example.data.model.OrderDetail
 import com.example.data.model.Product
 import android.content.Context
 import com.example.data.repository.GroceryRepository
+import com.example.data.repository.FirebaseSyncManager
+import com.example.data.repository.SyncStatus
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -29,32 +31,48 @@ class GroceryViewModel(
     private val _phoneNumber = MutableStateFlow(sharedPrefs.getString("phone_number", "") ?: "")
     val phoneNumber: StateFlow<String> = _phoneNumber.asStateFlow()
 
+    // --- FIREBASE CLOUD STREAM PERSISTENCE ENGINE ---
+    val firebaseSyncManager = FirebaseSyncManager(context)
+    val syncStatus: StateFlow<SyncStatus> = firebaseSyncManager.syncStatus
+
     fun login(firstNameValue: String, phoneNumberValue: String) {
+        val trimmedName = firstNameValue.trim()
+        val trimmedPhone = phoneNumberValue.trim()
         sharedPrefs.edit()
             .putBoolean("is_logged_in", true)
-            .putString("first_name", firstNameValue.trim())
-            .putString("phone_number", phoneNumberValue.trim())
+            .putString("first_name", trimmedName)
+            .putString("phone_number", trimmedPhone)
             .apply()
 
         _isLoggedIn.value = true
-        _firstName.value = firstNameValue.trim()
-        _phoneNumber.value = phoneNumberValue.trim()
+        _firstName.value = trimmedName
+        _phoneNumber.value = trimmedPhone
 
-        _checkoutName.value = firstNameValue.trim()
-        _checkoutMobile.value = phoneNumberValue.trim()
+        _checkoutName.value = trimmedName
+        _checkoutMobile.value = trimmedPhone
+
+        viewModelScope.launch {
+            firebaseSyncManager.authenticateUser(trimmedPhone, trimmedName)
+        }
     }
 
     fun updateProfile(newFirstName: String, newPhoneNumber: String) {
+        val trimmedName = newFirstName.trim()
+        val trimmedPhone = newPhoneNumber.trim()
         sharedPrefs.edit()
-            .putString("first_name", newFirstName.trim())
-            .putString("phone_number", newPhoneNumber.trim())
+            .putString("first_name", trimmedName)
+            .putString("phone_number", trimmedPhone)
             .apply()
 
-        _firstName.value = newFirstName.trim()
-        _phoneNumber.value = newPhoneNumber.trim()
+        _firstName.value = trimmedName
+        _phoneNumber.value = trimmedPhone
 
-        _checkoutName.value = newFirstName.trim()
-        _checkoutMobile.value = newPhoneNumber.trim()
+        _checkoutName.value = trimmedName
+        _checkoutMobile.value = trimmedPhone
+
+        viewModelScope.launch {
+            firebaseSyncManager.authenticateUser(trimmedPhone, trimmedName)
+        }
     }
 
     fun logout() {
@@ -93,6 +111,23 @@ class GroceryViewModel(
         }.onEach {
             _filteredProducts.value = it
         }.launchIn(viewModelScope)
+
+        // Proactively login/authenticate with Firebase Cloud on startup if session found
+        if (sharedPrefs.getBoolean("is_logged_in", false)) {
+            viewModelScope.launch {
+                firebaseSyncManager.authenticateUser(_phoneNumber.value, _firstName.value)
+            }
+        }
+
+        // Auto-reactive backup collections synchronizer whenever cartItems alters
+        viewModelScope.launch {
+            repository.cartItems.collectLatest { items ->
+                val phone = _phoneNumber.value
+                if (phone.isNotBlank()) {
+                    firebaseSyncManager.syncCart(phone, items)
+                }
+            }
+        }
     }
 
     fun setSearchQuery(query: String) {
@@ -115,21 +150,21 @@ class GroceryViewModel(
     val cartItems: StateFlow<List<CartItem>> = repository.cartItems
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = emptyList()
         )
 
     val cartCount: StateFlow<Int> = cartItems
         .map { list -> list.size }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     val totalQuantity: StateFlow<Int> = cartItems
         .map { list -> list.sumOf { it.quantity } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     val totalCost: StateFlow<Double> = cartItems
         .map { list -> list.sumOf { it.subtotal } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 
     fun addToCart(product: Product) {
         viewModelScope.launch {
@@ -248,6 +283,9 @@ class GroceryViewModel(
     }
 
     // --- PLACE ORDER ---
+    private val _isOrdering = MutableStateFlow(false)
+    val isOrdering: StateFlow<Boolean> = _isOrdering.asStateFlow()
+
     private val _lastPlacedOrderId = MutableStateFlow<String?>(null)
     val lastPlacedOrderId: StateFlow<String?> = _lastPlacedOrderId.asStateFlow()
 
@@ -257,48 +295,63 @@ class GroceryViewModel(
         val items = cartItems.value
         if (items.isEmpty()) return
 
+        _isOrdering.value = true
+
         viewModelScope.launch {
-            val orderId = "ORD${(10000..99999).random()}"
-            val totals = cartItems.value
-            val totalAmt = totals.sumOf { it.subtotal }
-            val totalQt = totals.sumOf { it.quantity }
-            val totalIts = totals.size
+            try {
+                val orderId = "ORD${(10000..99999).random()}"
+                val totals = cartItems.value
+                val totalAmt = totals.sumOf { it.subtotal }
+                val totalQt = totals.sumOf { it.quantity }
+                val totalIts = totals.size
 
-            val order = Order(
-                orderId = orderId,
-                timestamp = System.currentTimeMillis(),
-                totalAmount = totalAmt,
-                totalItems = totalIts,
-                totalQuantity = totalQt,
-                status = "Pending", // Default initial status
-                customerName = _checkoutName.value.trim(),
-                mobileNumber = _checkoutMobile.value.trim(),
-                address = _checkoutAddress.value.trim(),
-                pincode = _checkoutPincode.value.trim()
-            )
-
-            val orderDetails = items.map {
-                OrderDetail(
+                val order = Order(
                     orderId = orderId,
-                    productId = it.productId,
-                    productName = it.name,
-                    price = it.price,
-                    quantity = it.quantity,
-                    imageUrl = it.imageUrl,
-                    unit = it.unit
+                    timestamp = System.currentTimeMillis(),
+                    totalAmount = totalAmt,
+                    totalItems = totalIts,
+                    totalQuantity = totalQt,
+                    status = "Pending", // Default initial status
+                    customerName = _checkoutName.value.trim(),
+                    mobileNumber = _checkoutMobile.value.trim(),
+                    address = _checkoutAddress.value.trim(),
+                    pincode = _checkoutPincode.value.trim()
                 )
+
+                val orderDetails = items.map {
+                    OrderDetail(
+                        orderId = orderId,
+                        productId = it.productId,
+                        productName = it.name,
+                        price = it.price,
+                        quantity = it.quantity,
+                        imageUrl = it.imageUrl,
+                        unit = it.unit
+                    )
+                }
+
+                repository.placeOrder(order, orderDetails)
+                _lastPlacedOrderId.value = orderId
+
+                // Backup relational transaction ledger directly to Firebase Cloud Firestore asynchronously
+                try {
+                    firebaseSyncManager.syncOrder(_checkoutMobile.value.trim(), order, orderDetails)
+                } catch (e: Throwable) {
+                    // Safe crash protection to keep order completion fully functional offline
+                }
+
+                // Reset form details (retaining profile name/mobile details)
+                _checkoutName.value = _firstName.value
+                _checkoutMobile.value = _phoneNumber.value
+                _checkoutAddress.value = ""
+                _checkoutPincode.value = ""
+
+                onSuccess(orderId)
+            } catch (e: Throwable) {
+                // Safeguard against any unexpected Room/DB or runtime errors
+            } finally {
+                _isOrdering.value = false
             }
-
-            repository.placeOrder(order, orderDetails)
-            _lastPlacedOrderId.value = orderId
-
-            // Reset form details (retaining profile name/mobile details)
-            _checkoutName.value = _firstName.value
-            _checkoutMobile.value = _phoneNumber.value
-            _checkoutAddress.value = ""
-            _checkoutPincode.value = ""
-
-            onSuccess(orderId)
         }
     }
 
