@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,7 +49,7 @@ fun OrderHistoryScreen(
                         onClick = onNavigateBack,
                         modifier = Modifier.testTag("history_back_button")
                     ) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -59,7 +61,7 @@ fun OrderHistoryScreen(
     ) { innerPadding ->
         if (orders.isEmpty()) {
             EmptyStateView(
-                icon = Icons.Default.ReceiptLong,
+                icon = Icons.AutoMirrored.Filled.ReceiptLong,
                 title = "No Orders Placed",
                 description = "Your order history is empty. Start shopping and place your first order!",
                 actionText = "Shop Fresh Groceries",
@@ -165,7 +167,7 @@ fun OrderHistoryCard(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
             Spacer(modifier = Modifier.height(10.dp))
 
             // Summary Info Row
@@ -201,7 +203,7 @@ fun OrderHistoryCard(
                         .fillMaxWidth()
                         .padding(top = 16.dp)
                 ) {
-                    Divider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -276,7 +278,7 @@ fun OrderHistoryCard(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.04f))
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Customer delivery summary in expanded card

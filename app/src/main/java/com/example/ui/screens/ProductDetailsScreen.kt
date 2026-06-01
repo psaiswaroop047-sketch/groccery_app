@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,7 +51,7 @@ fun ProductDetailsScreen(
                         onClick = onNavigateBack,
                         modifier = Modifier.testTag("detail_back_button")
                     ) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -149,7 +150,7 @@ fun ProductDetailsScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        Divider(color = Color(0xFFE0E6E2))
+                        HorizontalDivider(color = Color(0xFFE0E6E2))
 
                         Spacer(modifier = Modifier.height(18.dp))
 
