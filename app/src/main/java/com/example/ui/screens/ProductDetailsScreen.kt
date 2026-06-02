@@ -42,6 +42,8 @@ fun ProductDetailsScreen(
     val cartItems by viewModel.cartItems.collectAsState()
     val cartItem = cartItems.find { it.productId == productId }
 
+    val windowSize = rememberWindowSizeClass()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -72,185 +74,352 @@ fun ProductDetailsScreen(
             }
         } else {
             val p = product!!
+            val isWideLayout = windowSize.width == WindowSizeClass.Expanded || windowSize.width == WindowSizeClass.Medium || windowSize.isLandscape
+
             Box(
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // Scrollable details body
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(bottom = 90.dp) // Spacing for floating bottom bar
-                ) {
-                    // Massive Image Display
-                    AsyncImage(
-                        model = p.imageUrl,
-                        contentDescription = p.name,
-                        contentScale = ContentScale.Crop,
+                // Main Content
+                if (isWideLayout) {
+                    Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(260.dp)
-                            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-
-                    Column(
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                            .fillMaxSize()
+                            .widthIn(max = 1100.dp)
+                            .padding(bottom = 90.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Category Badge
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            contentColor = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.wrapContentSize()
+                        // Left Column: Large Image Container
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = p.category,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            AsyncImage(
+                                model = p.imageUrl,
+                                contentDescription = p.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Product Name
-                        Text(
-                            text = p.name,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        // Price and unit layout
-                        Row(
-                            verticalAlignment = Alignment.Bottom
+                        // Right Column: Product Info & Scrolling details
+                        Column(
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .fillMaxHeight()
+                                .verticalScroll(rememberScrollState())
+                                .padding(24.dp)
                         ) {
+                            // Category Badge
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                contentColor = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.wrapContentSize()
+                            ) {
+                                Text(
+                                    text = p.category,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Product Name
                             Text(
-                                text = "₹${p.price.toInt()}",
-                                fontSize = 32.sp,
+                                p.name,
+                                fontSize = 28.sp,
                                 fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.tertiary
+                                color = MaterialTheme.colorScheme.onBackground
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // Price and unit layout
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = "₹${p.price.toInt()}",
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "/ ${p.unit}",
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(18.dp))
+                            HorizontalDivider(color = Color(0xFFE0E6E2))
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            // Features Column/Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Scale,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(text = "Unit", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                        Text(text = p.unit, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                    }
+                                }
+
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        val stockColor = if (p.stock > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(stockColor.copy(alpha = 0.08f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Inventory,
+                                                contentDescription = null,
+                                                tint = stockColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(text = "Available", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                        Text(
+                                            text = if (p.stock > 0) "${p.stock} items" else "Out of stock",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (p.stock > 0) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
                             Text(
-                                text = "/ ${p.unit}",
-                                fontSize = 15.sp,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                text = "Product Description",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = p.description,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                                lineHeight = 22.sp
                             )
                         }
+                    }
+                } else {
+                    // Portrait Mobile Stacking
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 90.dp)
+                    ) {
+                        AsyncImage(
+                            model = p.imageUrl,
+                            contentDescription = p.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(260.dp)
+                                .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        )
 
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        HorizontalDivider(color = Color(0xFFE0E6E2))
-
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        // Features Grid/Row (Unit and Stock cards)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        Column(
+                            modifier = Modifier.padding(horizontal = 24.dp)
                         ) {
-                            // Weight Unit Card
-                            Card(
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                contentColor = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.wrapContentSize()
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                Text(
+                                    text = p.category,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Text(
+                                text = p.name,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = "₹${p.price.toInt()}",
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "/ ${p.unit}",
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(18.dp))
+                            HorizontalDivider(color = Color(0xFFE0E6E2))
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
-                                        contentAlignment = Alignment.Center
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Scale,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Scale,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(text = "Unit", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                        Text(text = p.unit, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                    }
+                                }
+
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        val stockColor = if (p.stock > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(stockColor.copy(alpha = 0.08f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Inventory,
+                                                contentDescription = null,
+                                                tint = stockColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(text = "Available", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                        Text(
+                                            text = if (p.stock > 0) "${p.stock} items" else "Out of stock",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (p.stock > 0) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.error
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = "Unit", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                                    Text(text = p.unit, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                                 }
                             }
 
-                            // Available Stock Card
-                            Card(
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    val stockColor = if (p.stock > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(stockColor.copy(alpha = 0.08f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Inventory,
-                                            contentDescription = null,
-                                            tint = stockColor,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = "Available", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                                    Text(
-                                        text = if (p.stock > 0) "${p.stock} items" else "Out of stock",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (p.stock > 0) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text(
+                                text = "Product Description",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = p.description,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                                lineHeight = 22.sp
+                            )
                         }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // Description
-                        Text(
-                            text = "Product Description",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = p.description,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                            lineHeight = 22.sp
-                        )
                     }
                 }
 
-                // Floating bottom navigation row holding active cart modifications
+                // Centered, responsive floating bottom bar
                 Card(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .widthIn(max = 1100.dp)
                         .fillMaxWidth(),
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -264,7 +433,6 @@ fun ProductDetailsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Total price preview
                         Column {
                             Text(
                                 text = "Total Price",
@@ -280,7 +448,6 @@ fun ProductDetailsScreen(
                             )
                         }
 
-                        // Stock conditional buy actions
                         if (p.stock <= 0) {
                             Button(
                                 onClick = {},
@@ -312,7 +479,6 @@ fun ProductDetailsScreen(
                                 }
                             }
                         } else {
-                            // Plus minus counter
                             Row(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))

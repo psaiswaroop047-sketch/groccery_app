@@ -20,6 +20,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.remember
+
+enum class WindowSizeClass { Compact, Medium, Expanded }
+
+data class WindowSize(
+    val width: WindowSizeClass,
+    val height: WindowSizeClass,
+    val isLandscape: Boolean,
+    val screenWidthDp: Int,
+    val screenHeightDp: Int
+)
+
+@Composable
+fun rememberWindowSizeClass(): WindowSize {
+    val configuration = LocalConfiguration.current
+    return remember(configuration) {
+        WindowSize(
+            width = when {
+                configuration.screenWidthDp < 600 -> WindowSizeClass.Compact
+                configuration.screenWidthDp < 840 -> WindowSizeClass.Medium
+                else -> WindowSizeClass.Expanded
+            },
+            height = when {
+                configuration.screenHeightDp < 480 -> WindowSizeClass.Compact
+                configuration.screenHeightDp < 900 -> WindowSizeClass.Medium
+                else -> WindowSizeClass.Expanded
+            },
+            isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE,
+            screenWidthDp = configuration.screenWidthDp,
+            screenHeightDp = configuration.screenHeightDp
+        )
+    }
+}
 
 @Composable
 fun LoadingIndicator(

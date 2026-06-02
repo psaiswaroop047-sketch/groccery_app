@@ -87,198 +87,403 @@ fun CheckoutScreen(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
+        val windowSize = rememberWindowSizeClass()
+        val isWideLayout = windowSize.width == WindowSizeClass.Expanded || windowSize.width == WindowSizeClass.Medium || windowSize.isLandscape
+
         Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Main scrollable form
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // 1. Order Summary Card
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            if (isWideLayout) {
+                // Tablet / Landscape Split screen layout
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 1100.dp)
+                        .padding(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    // Left Column: Delivery Details Form
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
                     ) {
-                        Text(
-                            text = "Order Summary",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Text(
+                                text = "Delivery Details",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
 
-                        // List all items in summary
-                        cartItems.forEach { item ->
+                            // --- Full Name Form Input (Read Only) ---
+                            Column {
+                                OutlinedTextField(
+                                    value = name,
+                                    onValueChange = {},
+                                    label = { Text("Full Name (Read Only)") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    readOnly = true,
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_name_input")
+                                )
+                            }
+
+                            // --- Mobile Number Form Input (Read Only) ---
+                            Column {
+                                OutlinedTextField(
+                                    value = mobile,
+                                    onValueChange = {},
+                                    label = { Text("Mobile Number (Read Only)") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.Phone, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    readOnly = true,
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_mobile_input")
+                                )
+                            }
+
+                            // --- Address Form Input ---
+                            Column {
+                                OutlinedTextField(
+                                    value = address,
+                                    onValueChange = { viewModel.updateCheckoutAddress(it) },
+                                    label = { Text("Delivery Address") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.Home, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    isError = addressError != null,
+                                    minLines = 2,
+                                    maxLines = 4,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_address_input")
+                                )
+                                if (addressError != null) {
+                                    Text(
+                                        text = addressError!!,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(start = 12.dp, top = 4.dp).testTag("checkout_address_error")
+                                    )
+                                }
+                            }
+
+                            // --- Pincode Form Input ---
+                            Column {
+                                OutlinedTextField(
+                                    value = pincode,
+                                    onValueChange = { viewModel.updateCheckoutPincode(it) },
+                                    label = { Text("Pincode (6 digits)") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.LocalShipping, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    isError = pincodeError != null,
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_pincode_input")
+                                )
+                                if (pincodeError != null) {
+                                    Text(
+                                        text = pincodeError!!,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(start = 12.dp, top = 4.dp).testTag("checkout_pincode_error")
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Right Column: Order Summary Info
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        modifier = Modifier
+                            .weight(0.9f)
+                            .wrapContentHeight()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp)
+                        ) {
+                            Text(
+                                text = "Order Summary",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+
+                            // List all items in summary
+                            cartItems.forEach { item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(0.7f)) {
+                                        Text(
+                                            text = item.name,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Text(
+                                            text = "${item.quantity} x ₹${item.price.toInt()} / ${item.unit}",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                    Text(
+                                        text = "₹${item.subtotal.toInt()}",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Grand total
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(0.7f)) {
-                                    Text(
-                                        text = item.name,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                    Text(
-                                        text = "${item.quantity} x ₹${item.price.toInt()} / ${item.unit}",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                    )
-                                }
                                 Text(
-                                    text = "₹${item.subtotal.toInt()}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground
+                                    text = "Grand Total",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "₹${totalPrice.toInt()}",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Grand total
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Grand Total",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "₹${totalPrice.toInt()}",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary
-                            )
                         }
                     }
                 }
-
-                // 2. Customer Delivery Details Card
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            } else {
+                // Mobile Portrait layout
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 100.dp, start = 16.dp, end = 16.dp, top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    // 1. Order Summary Card
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
-                        Text(
-                            text = "Delivery Details",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-
-                        // --- Full Name Form Input (Read Only) ---
-                        Column {
-                            OutlinedTextField(
-                                value = name,
-                                onValueChange = {},
-                                label = { Text("Full Name (Read Only)") },
-                                leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
-                                shape = RoundedCornerShape(12.dp),
-                                readOnly = true,
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("checkout_name_input")
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Order Summary",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 8.dp)
                             )
-                        }
 
-                        // --- Mobile Number Form Input (Read Only) ---
-                        Column {
-                            OutlinedTextField(
-                                value = mobile,
-                                onValueChange = {},
-                                label = { Text("Mobile Number (Read Only)") },
-                                leadingIcon = { Icon(imageVector = Icons.Default.Phone, contentDescription = null) },
-                                shape = RoundedCornerShape(12.dp),
-                                readOnly = true,
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("checkout_mobile_input")
-                            )
-                        }
+                            // List all items in summary
+                            cartItems.forEach { item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(0.7f)) {
+                                        Text(
+                                            text = item.name,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Text(
+                                            text = "${item.quantity} x ₹${item.price.toInt()} / ${item.unit}",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                    Text(
+                                        text = "₹${item.subtotal.toInt()}",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                }
+                            }
 
-                        // --- Address Form Input ---
-                        Column {
-                            OutlinedTextField(
-                                value = address,
-                                onValueChange = { viewModel.updateCheckoutAddress(it) },
-                                label = { Text("Delivery Address") },
-                                leadingIcon = { Icon(imageVector = Icons.Default.Home, contentDescription = null) },
-                                shape = RoundedCornerShape(12.dp),
-                                isError = addressError != null,
-                                minLines = 2,
-                                maxLines = 4,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("checkout_address_input")
-                            )
-                            if (addressError != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Grand total
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = addressError!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.padding(start = 12.dp, top = 4.dp).testTag("checkout_address_error")
+                                    text = "Grand Total",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "₹${totalPrice.toInt()}",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
+                    }
 
-                        // --- Pincode Form Input ---
-                        Column {
-                            OutlinedTextField(
-                                value = pincode,
-                                onValueChange = { viewModel.updateCheckoutPincode(it) },
-                                label = { Text("Pincode (6 digits)") },
-                                leadingIcon = { Icon(imageVector = Icons.Default.LocalShipping, contentDescription = null) },
-                                shape = RoundedCornerShape(12.dp),
-                                isError = pincodeError != null,
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("checkout_pincode_input")
+                    // 2. Customer Delivery Details Card
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Text(
+                                text = "Delivery Details",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 2.dp)
                             )
-                            if (pincodeError != null) {
-                                Text(
-                                    text = pincodeError!!,
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.padding(start = 12.dp, top = 4.dp).testTag("checkout_pincode_error")
+
+                            // --- Full Name Form Input (Read Only) ---
+                            Column {
+                                OutlinedTextField(
+                                    value = name,
+                                    onValueChange = {},
+                                    label = { Text("Full Name (Read Only)") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    readOnly = true,
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_name_input")
                                 )
+                            }
+
+                            // --- Mobile Number Form Input (Read Only) ---
+                            Column {
+                                OutlinedTextField(
+                                    value = mobile,
+                                    onValueChange = {},
+                                    label = { Text("Mobile Number (Read Only)") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.Phone, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    readOnly = true,
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_mobile_input")
+                                )
+                            }
+
+                            // --- Address Form Input ---
+                            Column {
+                                OutlinedTextField(
+                                    value = address,
+                                    onValueChange = { viewModel.updateCheckoutAddress(it) },
+                                    label = { Text("Delivery Address") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.Home, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    isError = addressError != null,
+                                    minLines = 2,
+                                    maxLines = 4,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_address_input")
+                                )
+                                if (addressError != null) {
+                                    Text(
+                                        text = addressError!!,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(start = 12.dp, top = 4.dp).testTag("checkout_address_error")
+                                    )
+                                }
+                            }
+
+                            // --- Pincode Form Input ---
+                            Column {
+                                OutlinedTextField(
+                                    value = pincode,
+                                    onValueChange = { viewModel.updateCheckoutPincode(it) },
+                                    label = { Text("Pincode (6 digits)") },
+                                    leadingIcon = { Icon(imageVector = Icons.Default.LocalShipping, contentDescription = null) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    isError = pincodeError != null,
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("checkout_pincode_input")
+                                )
+                                if (pincodeError != null) {
+                                    Text(
+                                        text = pincodeError!!,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(start = 12.dp, top = 4.dp).testTag("checkout_pincode_error")
+                                    )
+                                }
                             }
                         }
                     }
@@ -289,6 +494,7 @@ fun CheckoutScreen(
             Card(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .widthIn(max = 1100.dp)
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

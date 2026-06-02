@@ -69,29 +69,36 @@ fun OrderHistoryScreen(
                 modifier = Modifier.padding(innerPadding)
             )
         } else {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 32.dp, start = 16.dp, end = 16.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+            Box(
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .testTag("orders_history_list")
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.TopCenter
             ) {
-                items(orders, key = { it.orderId }) { order ->
-                    var isExpanded by remember { mutableStateOf(false) }
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 32.dp, start = 16.dp, end = 16.dp, top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 800.dp)
+                        .testTag("orders_history_list")
+                ) {
+                    items(orders, key = { it.orderId }) { order ->
+                        var isExpanded by remember { mutableStateOf(false) }
 
-                    OrderHistoryCard(
-                        order = order,
-                        isExpanded = isExpanded,
-                        onExpandToggle = {
-                            isExpanded = !isExpanded
-                            if (isExpanded) {
-                                viewModel.loadOrderDetails(order.orderId)
-                            }
-                        },
-                        itemsDetails = loadedDetailsMap[order.orderId]
-                    )
+                        OrderHistoryCard(
+                            order = order,
+                            isExpanded = isExpanded,
+                            onExpandToggle = {
+                                isExpanded = !isExpanded
+                                if (isExpanded) {
+                                    viewModel.loadOrderDetails(order.orderId)
+                                }
+                            },
+                            itemsDetails = loadedDetailsMap[order.orderId]
+                        )
+                    }
                 }
             }
         }

@@ -72,6 +72,9 @@ fun CartScreen(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
+        val windowSize = rememberWindowSizeClass()
+        val isWideLayout = windowSize.width == WindowSizeClass.Expanded || windowSize.width == WindowSizeClass.Medium || windowSize.isLandscape
+
         if (cartItems.isEmpty()) {
             EmptyStateView(
                 icon = Icons.Default.ShoppingCart,
@@ -86,107 +89,213 @@ fun CartScreen(
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // Scrollable cart items list
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 180.dp, start = 16.dp, end = 16.dp, top = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag("cart_items_list")
-                ) {
-                    items(cartItems, key = { it.productId }) { item ->
-                        CartItemRow(
-                            item = item,
-                            onIncreaseClick = { viewModel.increaseQuantity(item) },
-                            onDecreaseClick = { viewModel.decreaseQuantity(item) },
-                            onRemoveClick = { viewModel.removeCartItem(item.productId) }
-                        )
-                    }
-                }
-
-                // Calculations bottom overlay panel
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-                ) {
-                    Column(
+                if (isWideLayout) {
+                    // Split screen for Tablets / Landscapes
+                    Row(
                         modifier = Modifier
-                            .navigationBarsPadding()
-                            .padding(24.dp)
+                            .fillMaxSize()
+                            .widthIn(max = 1100.dp)
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        Text(
-                            text = "Checkout Summary",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
-
-                        // 1. Total Items (Rows)
-                        Row(
+                        // Left side: Lazy list of items
+                        LazyColumn(
+                            contentPadding = PaddingValues(bottom = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .weight(1.2f)
+                                .fillMaxHeight()
+                                .testTag("cart_items_list")
                         ) {
-                            Text(text = "Total Items types", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                            Text(text = "$totalCount items", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            items(cartItems, key = { it.productId }) { item ->
+                                CartItemRow(
+                                    item = item,
+                                    onIncreaseClick = { viewModel.increaseQuantity(item) },
+                                    onDecreaseClick = { viewModel.decreaseQuantity(item) },
+                                    onRemoveClick = { viewModel.removeCartItem(item.productId) }
+                                )
+                            }
                         }
 
-                        // 2. Total Quantity
-                        Row(
+                        // Right side: Calculations summary block
+                        Card(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 3.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .weight(0.8f)
+                                .wrapContentHeight(),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Text(text = "Total Quantity unit", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
-                            Text(text = "$totalQty units", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Column(
+                                modifier = Modifier
+                                    .padding(24.dp)
+                            ) {
+                                Text(
+                                    text = "Checkout Summary",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.padding(bottom = 16.dp)
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = "Total Item Types", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                    Text(text = "$totalCount items", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = "Total Units", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                    Text(text = "$totalQty units", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = "Total Cost", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                    Text(
+                                        text = "₹${totalPrice.toInt()}",
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                Button(
+                                    onClick = onNavigateToCheckout,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp)
+                                        .testTag("proceed_to_checkout_button")
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(text = "Proceed to Checkout", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
                         }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // 3. Grand Total Cost
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = "Total Cost", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
-                            Text(
-                                text = "₹${totalPrice.toInt()}",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary
+                    }
+                } else {
+                    // Mobile stacked layout
+                    LazyColumn(
+                        contentPadding = PaddingValues(bottom = 180.dp, start = 16.dp, end = 16.dp, top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag("cart_items_list")
+                    ) {
+                        items(cartItems, key = { it.productId }) { item ->
+                            CartItemRow(
+                                item = item,
+                                onIncreaseClick = { viewModel.increaseQuantity(item) },
+                                onDecreaseClick = { viewModel.decreaseQuantity(item) },
+                                onRemoveClick = { viewModel.removeCartItem(item.productId) }
                             )
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Checkout Button
-                        Button(
-                            onClick = onNavigateToCheckout,
-                            shape = RoundedCornerShape(12.dp),
+                    // Bottom sheet panel
+                    Card(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                    ) {
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp)
-                                .testTag("proceed_to_checkout_button")
+                                .navigationBarsPadding()
+                                .padding(24.dp)
                         ) {
+                            Text(
+                                text = "Checkout Summary",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Proceed to Checkout", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text(text = "Total Items types", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                Text(text = "$totalCount items", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = "Total Quantity unit", fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                                Text(text = "$totalQty units", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.05f))
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "Total Cost", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                                Text(
+                                    text = "₹${totalPrice.toInt()}",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = onNavigateToCheckout,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                                    .testTag("proceed_to_checkout_button")
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(text = "Proceed to Checkout", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }

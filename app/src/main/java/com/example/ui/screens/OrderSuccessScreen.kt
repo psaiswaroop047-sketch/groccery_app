@@ -37,6 +37,7 @@ fun OrderSuccessScreen(
             modifier = Modifier
                 .padding(24.dp)
                 .fillMaxWidth()
+                .widthIn(max = 480.dp)
         ) {
             // Large Animated Check Circle Icon
             Box(
